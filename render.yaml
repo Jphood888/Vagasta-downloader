@@ -2,8 +2,7 @@ services:
   - type: web
     name: vagasta-downloader
     env: python
-    buildCommand: ""
-    startCommand: gunicorn app:app
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
     repo: https://github.com/Jphood888/Vagasta-downloader
     branch: main
-    plan: free
