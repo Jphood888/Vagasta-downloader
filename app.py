@@ -20,9 +20,8 @@ def download():
         'no_warnings': True
     }
 
-    # Example for Instagram
     if platform == 'instagram':
-        ydl_opts['cookiefile'] = 'instagram_cookies.txt'  # ✅ Add this line
+        ydl_opts['cookiefile'] = 'instagram_cookies.txt'
         if format == 'photo':
             ydl_opts['format'] = 'bestimage'
         elif format == 'video':
@@ -30,21 +29,23 @@ def download():
         else:
             return jsonify({'error': 'Unsupported format for Instagram'}), 400
 
-    # Example for YouTube
-    elif platform == 'youtube':
-        if format == 'mp3':
-            ydl_opts.update({
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }]
-            })
-        elif format == 'mp4':
-            ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        else:
-            return jsonify({'error': 'Unsupported format for YouTube'}), 400
+    elif platform == 'tiktok':
+        ydl_opts['format'] = 'best'
+        if format not in ['video', 'nowatermark']:
+            return jsonify({'error': 'Unsupported format for TikTok'}), 400
+
+    elif platform == 'facebook':
+        ydl_opts['format'] = 'best'
+        if format not in ['video', 'photo', 'hd']:
+            return jsonify({'error': 'Unsupported format for Facebook'}), 400
+
+    elif platform in ['twitter', 'x']:
+        ydl_opts['format'] = 'best'
+        if format not in ['video', 'gif', 'photo']:
+            return jsonify({'error': 'Unsupported format for Twitter/X'}), 400
+
+    elif platform == 'whatsapp':
+        return jsonify({'error': 'WhatsApp media downloads are not supported by yt-dlp'}), 400
 
     else:
         return jsonify({'error': 'Unsupported platform'}), 400
@@ -55,6 +56,7 @@ def download():
             filename = ydl.prepare_filename(info)
 
         return send_file(filename, as_attachment=True)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
