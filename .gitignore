@@ -1,1 +1,6 @@
-node_modules/\n*.log\n.npm/\n.amplify/\ndownloads/\n*.zip\n*.mp4
+__pycache__/
+*.pyc
+.env
+*.log
+.vscode/
+playwright/.cache/
