@@ -3,9 +3,10 @@ import random
 import string
 import os
 from .temp_mail import create_temp_email, wait_for_instagram_code
+from .insta_login import save_session_cookies  # Reuse login's cookie saver
 
 def generate_random_username():
-    return "vagasta" + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    return "vagasta_" + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
 
 def generate_strong_password():
     return ''.join(random.choices(string.ascii_letters + string.digits + "!@#$%^&*", k=12))
@@ -15,7 +16,6 @@ def perform_instagram_signup():
     username = generate_random_username()
     password = generate_strong_password()
 
-    # Simulate form submission to Instagram
     signup_url = "https://www.instagram.com/accounts/web_create_ajax/"
     session = requests.Session()
 
@@ -25,6 +25,7 @@ def perform_instagram_signup():
         "X-Requested-With": "XMLHttpRequest",
     }
 
+    # Initial GET to get CSRF
     session.get("https://www.instagram.com/")
     csrf_token = session.cookies.get("csrftoken")
     headers["X-CSRFToken"] = csrf_token
@@ -38,19 +39,16 @@ def perform_instagram_signup():
     }
 
     resp = session.post(signup_url, headers=headers, data=payload)
-    if resp.status_code == 200 and "user" in resp.text:
-        print("Signup sent successfully.")
-        # Wait for verification code (if Instagram sends one)
+
+    if resp.status_code == 200 and ("user" in resp.text or "account_created" in resp.text):
+        print("Signup request sent successfully.")
+
+        # OPTIONAL: Wait for email verification
         code = wait_for_instagram_code(email)
-        # You may need to post this code to confirm email (depends on flow)
+        # (Not implemented yet — use Playwright later to handle code entry)
 
         # Save cookies
-        cookies_dir = 'cookies'
-        os.makedirs(cookies_dir, exist_ok=True)
-        cookie_path = os.path.join(cookies_dir, f'instagram_cookies_{username}.txt')
-        with open(cookie_path, 'w') as f:
-            for cookie in session.cookies:
-                f.write(f"{cookie.domain}\tTRUE\t{cookie.path}\t{str(cookie.secure).upper()}\t{cookie.expires}\t{cookie.name}\t{cookie.value}\n")
+        save_session_cookies(session, username)
 
         return {
             "status": "ok",
@@ -58,5 +56,13 @@ def perform_instagram_signup():
             "password": password,
             "email": email
         }
+
     else:
-        return {"status": "fail", "error": "Signup failed"}
+        return {
+            "status": "fail",
+            "error": f"Signup failed: {resp.text}",
+            "debug": {
+                "response_code": resp.status_code,
+                "response_body": resp.text
+            }
+        }
