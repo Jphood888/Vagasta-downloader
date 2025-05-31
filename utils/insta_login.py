@@ -16,3 +16,7 @@ async def login_to_instagram(username, password):
         cookies = await context.cookies()
         await browser.close()
         return cookies
+async def save_session_cookies(username, password):
+    cookies = await login_to_instagram(username, password)
+    # Optional: save cookies to a file or database here
+    return cookies
