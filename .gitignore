@@ -1,7 +1,18 @@
+# Python cache
 __pycache__/
 *.pyc
+
+# Environment variables and secrets
 .env
+
+# Logs
 *.log
+
+# VSCode and IDE settings
 .vscode/
+
+# Playwright cache
 playwright/.cache/
+
+# Instagram session cookies (never commit real cookies!)
 /cookies/*.txt
