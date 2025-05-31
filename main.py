@@ -3,6 +3,7 @@ import yt_dlp
 import requests
 import os
 
+from utils.insta_signup import perform_instagram_signup
 app = Flask(__name__)
 
 # ===== Instagram Login Route =====
@@ -20,7 +21,11 @@ def login_instagram():
         return jsonify({"status": "ok", "message": "Logged in!"})
     else:
         return jsonify({"status": "fail", "error": "Login failed!"}), 401
-
+# ===== Instagram Signup Route =====
+@app.route('/signup', methods=['POST'])
+def signup_instagram():
+    result = perform_instagram_signup()
+    return jsonify(result)
 # ===== Download Route =====
 @app.route('/download', methods=['POST'])
 def download():
