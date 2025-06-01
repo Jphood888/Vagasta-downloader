@@ -28,20 +28,9 @@ def login_instagram():
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
     try:
-        data = request.json
-        print("📨 Received signup data:", data)
-
-        email = data["email"]
-        username = data["username"]
-        password = data["password"]
-        verification_code = data["verification_code"]
-
-        result = asyncio.run(perform_instagram_signup(email, username, password, verification_code))
-        print("✅ Signup result:", result)
+        result = perform_instagram_signup()  # no params
         return jsonify(result)
-    
     except Exception as e:
-        print("❌ Signup error:", str(e))
         return jsonify({"status": "fail", "error": str(e)}), 500
 # ===== Download Route =====
 @app.route('/download', methods=['POST'])
