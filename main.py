@@ -2,10 +2,9 @@ from flask import Flask, request, jsonify, send_file
 import yt_dlp
 import requests
 import os
-import asyncio
 import re
 
-from utils.insta_signup import perform_instagram_signup
+from utils.insta_signup import perform_instagram_signup  # Make sure this file is correct
 
 app = Flask(__name__)
 
@@ -29,65 +28,47 @@ def login_instagram():
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
     try:
-        result = perform_instagram_signup()  # Auto signup
+        result = perform_instagram_signup()  # Async signup inside utils
         return jsonify(result)
     except Exception as e:
         print("❌ Signup error:", str(e))
         return jsonify({"status": "fail", "error": str(e)}), 500
 
-# ===== Download Route =====
+# ===== Instagram Download Route =====
 @app.route('/download', methods=['POST'])
 def download():
     data = request.get_json()
     url = data.get('url')
     platform = data.get('platform')
     format = data.get('format')
-    username = data.get('username')  # Required for Instagram
+    username = data.get('username')
 
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
+    if platform != 'instagram':
+        return jsonify({'error': 'Only Instagram supported'}), 400
+    if not username:
+        return jsonify({'error': 'Username required for Instagram download'}), 400
+
+    safe_username = re.sub(r'[^\w\-_.]', '_', username)
+    cookie_file = os.path.join('cookies', f'instagram_cookies_{safe_username}.txt')
+    if not os.path.exists(cookie_file):
+        return jsonify({'error': 'User not logged in'}), 403
 
     ydl_opts = {
         'outtmpl': 'download.%(ext)s',
         'quiet': True,
         'no_warnings': True,
-        'ffmpeg_location': '/usr/bin/ffmpeg'  # Update path if needed
+        'ffmpeg_location': '/usr/bin/ffmpeg',
+        'cookiefile': cookie_file
     }
 
-    if platform == 'instagram':
-        if not username:
-            return jsonify({'error': 'Username required for Instagram download'}), 400
-
-        safe_username = re.sub(r'[^\w\-_.]', '_', username)
-        cookie_file = os.path.join('cookies', f'instagram_cookies_{safe_username}.txt')
-        if not os.path.exists(cookie_file):
-            return jsonify({'error': 'User not logged in'}), 403
-
-        ydl_opts['cookiefile'] = cookie_file
-        if format == 'photo':
-            ydl_opts['format'] = 'bestimage'
-        elif format == 'video':
-            ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        else:
-            return jsonify({'error': 'Unsupported format for Instagram'}), 400
-
-    elif platform == 'youtube':
-        if format == 'mp3':
-            ydl_opts.update({
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }]
-            })
-        elif format == 'mp4':
-            ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        else:
-            return jsonify({'error': 'Unsupported format for YouTube'}), 400
-
+    if format == 'photo':
+        ydl_opts['format'] = 'bestimage'
+    elif format == 'video':
+        ydl_opts['format'] = 'bestvideo+bestaudio/best'
     else:
-        return jsonify({'error': 'Unsupported platform'}), 400
+        return jsonify({'error': 'Unsupported format for Instagram'}), 400
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -136,4 +117,5 @@ def save_session_cookies(session, username):
 
 # ===== Run Flask App =====
 if __name__ == '__main__':
-    app.run(debug=True)
+    from waitress import serve
+    serve(app, host='0.0.0.0', port=8080)
