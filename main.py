@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify, send_file
 import yt_dlp
 import requests
 import os
+import asyncio
 
 from utils.insta_signup import perform_instagram_signup
+
 app = Flask(__name__)
 
 # ===== Instagram Login Route =====
@@ -21,11 +23,16 @@ def login_instagram():
         return jsonify({"status": "ok", "message": "Logged in!"})
     else:
         return jsonify({"status": "fail", "error": "Login failed!"}), 401
-# ===== Instagram Signup Route =====
+
+# ===== Instagram Signup Route (UPDATED FOR ASYNC) =====
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
-    result = perform_instagram_signup()
-    return jsonify(result)
+    try:
+        result = asyncio.run(perform_instagram_signup())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "fail", "error": str(e)}), 500
+
 # ===== Download Route =====
 @app.route('/download', methods=['POST'])
 def download():
