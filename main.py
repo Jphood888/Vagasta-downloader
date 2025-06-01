@@ -28,9 +28,10 @@ def login_instagram():
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
     try:
-        result = perform_instagram_signup()  # no params
+        result = perform_instagram_signup()  # No args needed
         return jsonify(result)
     except Exception as e:
+        print("❌ Signup error:", str(e))
         return jsonify({"status": "fail", "error": str(e)}), 500
 # ===== Download Route =====
 @app.route('/download', methods=['POST'])
