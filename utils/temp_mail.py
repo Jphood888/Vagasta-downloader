@@ -35,18 +35,24 @@ async def create_temp_mail():
             "token": token
         }
 
-async def wait_for_instagram_code(token):
+async def wait_for_instagram_code(token, max_wait_seconds=90):
     async with httpx.AsyncClient() as client:
         headers = {"Authorization": f"Bearer {token}"}
-        for _ in range(30):
-            res = await client.get(f"{MAIL_TM_BASE}/messages", headers=headers)
-            msgs = res.json()["hydra:member"]
-            for msg in msgs:
-                if "instagram" in msg["from"]["address"].lower():
-                    full = await client.get(f"{MAIL_TM_BASE}/messages/{msg['id']}", headers=headers)
-                    text = full.json()["text"]
-                    code_match = re.search(r"(\d{6})", text)
-                    if code_match:
-                        return code_match.group(1)
-            await asyncio.sleep(2)
-        raise TimeoutError("No Instagram code received")
+        waited = 0
+        while waited < max_wait_seconds:
+            try:
+                res = await client.get(f"{MAIL_TM_BASE}/messages", headers=headers)
+                msgs = res.json().get("hydra:member", [])
+                for msg in msgs:
+                    if "instagram" in msg["from"]["address"].lower():
+                        full = await client.get(f"{MAIL_TM_BASE}/messages/{msg['id']}", headers=headers)
+                        text = full.json().get("text", "")
+                        code_match = re.search(r"(\d{6})", text)
+                        if code_match:
+                            return code_match.group(1)
+            except Exception as e:
+                print(f"⚠️ Error checking mail: {e}")
+            await asyncio.sleep(5)
+            waited += 5
+
+        raise TimeoutError("❌ No Instagram verification code received after waiting.")
