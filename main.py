@@ -3,6 +3,7 @@ import yt_dlp
 import requests
 import os
 import asyncio
+import re
 
 from utils.insta_signup import perform_instagram_signup
 
@@ -24,15 +25,16 @@ def login_instagram():
     else:
         return jsonify({"status": "fail", "error": "Login failed!"}), 401
 
-# ===== Instagram Signup Route (UPDATED FOR ASYNC) =====
+# ===== Instagram Signup Route =====
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
     try:
-        result = perform_instagram_signup()  # No args needed
+        result = perform_instagram_signup()  # Auto signup
         return jsonify(result)
     except Exception as e:
         print("❌ Signup error:", str(e))
         return jsonify({"status": "fail", "error": str(e)}), 500
+
 # ===== Download Route =====
 @app.route('/download', methods=['POST'])
 def download():
@@ -40,7 +42,7 @@ def download():
     url = data.get('url')
     platform = data.get('platform')
     format = data.get('format')
-    username = data.get('username')  # For Instagram cookies
+    username = data.get('username')  # Required for Instagram
 
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
@@ -48,11 +50,16 @@ def download():
     ydl_opts = {
         'outtmpl': 'download.%(ext)s',
         'quiet': True,
-        'no_warnings': True
+        'no_warnings': True,
+        'ffmpeg_location': '/usr/bin/ffmpeg'  # Update path if needed
     }
 
     if platform == 'instagram':
-        cookie_file = os.path.join('cookies', f'instagram_cookies_{username}.txt')
+        if not username:
+            return jsonify({'error': 'Username required for Instagram download'}), 400
+
+        safe_username = re.sub(r'[^\w\-_.]', '_', username)
+        cookie_file = os.path.join('cookies', f'instagram_cookies_{safe_username}.txt')
         if not os.path.exists(cookie_file):
             return jsonify({'error': 'User not logged in'}), 403
 
@@ -87,7 +94,10 @@ def download():
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-        return send_file(filename, as_attachment=True)
+        response = send_file(filename, as_attachment=True)
+        os.remove(filename)  # Clean up
+        return response
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -118,7 +128,8 @@ def perform_instagram_login(session, username, password):
 def save_session_cookies(session, username):
     cookies_dir = 'cookies'
     os.makedirs(cookies_dir, exist_ok=True)
-    filename = os.path.join(cookies_dir, f'instagram_cookies_{username}.txt')
+    safe_username = re.sub(r'[^\w\-_.]', '_', username)
+    filename = os.path.join(cookies_dir, f'instagram_cookies_{safe_username}.txt')
     with open(filename, 'w') as f:
         for cookie in session.cookies:
             f.write(f"{cookie.domain}\tTRUE\t{cookie.path}\t{str(cookie.secure).upper()}\t{cookie.expires}\t{cookie.name}\t{cookie.value}\n")
