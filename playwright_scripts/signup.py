@@ -35,8 +35,12 @@ async def signup_with_playwright(email, username, password, verification_code):
                 await page.wait_for_timeout(3000)
 
             await browser.close()
-            return {"status": "ok", "message": "Signup complete"}
+            return {"status": "ok", "message": "Signup complete", "username": username}
 
         except Exception as e:
             await browser.close()
             return {"status": "fail", "error": str(e)}
+
+# ✅ This is the function your backend expects
+def signup_instagram(email, username, password, verification_code):
+    return asyncio.run(signup_with_playwright(email, username, password, verification_code))
