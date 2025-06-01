@@ -13,7 +13,13 @@ def generate_strong_password():
     return ''.join(random.choices(string.ascii_letters + string.digits + "!@#$%^&*", k=12))
 
 def perform_instagram_signup():
-    return asyncio.run(_signup_async())
+    try:
+        return asyncio.run(_signup_async())
+    except Exception as e:
+        return {
+            "status": "fail",
+            "error": f"Top-level async failure: {str(e)}"
+        }
 
 async def _signup_async():
     try:
@@ -27,13 +33,14 @@ async def _signup_async():
         print(f"🟢 Temp Email Created: {email}")
         print(f"📛 Username: {username} | 🔑 Password: {password}")
 
-        # 2. Wait for Instagram code
-        print("⏳ Waiting for verification code...")
+        # 2. Wait for Instagram verification code
+        print("⏳ Waiting for Instagram verification code...")
         code = await wait_for_instagram_code(token)
         print(f"✅ Code received: {code}")
 
-        # 3. Sign up using Playwright
+        # 3. Complete Instagram signup using Playwright
         cookies = await signup_instagram(email, username, password, code)
+        print("🎉 Signup successful!")
 
         return {
             "status": "ok",
@@ -43,8 +50,16 @@ async def _signup_async():
             "cookies": cookies
         }
 
+    except TimeoutError as te:
+        print(f"⏱️ TimeoutError: {str(te)}")
+        return {
+            "status": "fail",
+            "error": f"Timeout: {str(te)}"
+        }
+
     except Exception as e:
+        print(f"❌ Unexpected Error: {str(e)}")
         return {
             "status": "fail",
             "error": str(e)
-        }
+    }
