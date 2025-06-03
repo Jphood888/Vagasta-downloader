@@ -3,10 +3,17 @@ import yt_dlp
 import requests
 import os
 import re
+import traceback
+import asyncio
 
-from utils.insta_signup import perform_instagram_signup  # Make sure this file is correct
+from utils.insta_signup import perform_instagram_signup  # Make sure this is correct
 
 app = Flask(__name__)
+
+# ===== Health Check Route =====
+@app.route('/')
+def index():
+    return "✅ Vagasta Downloader is Live"
 
 # ===== Instagram Login Route =====
 @app.route('/login', methods=['POST'])
@@ -28,10 +35,19 @@ def login_instagram():
 @app.route('/signup', methods=['POST'])
 def signup_instagram():
     try:
-        result = perform_instagram_signup()  # Async signup inside utils
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+
+        if not all([username, password, email]):
+            return jsonify({"status": "fail", "error": "Missing signup data"}), 400
+
+        result = asyncio.run(perform_instagram_signup(username, password, email))
         return jsonify(result)
     except Exception as e:
         print("❌ Signup error:", str(e))
+        traceback.print_exc()
         return jsonify({"status": "fail", "error": str(e)}), 500
 
 # ===== Instagram Download Route =====
