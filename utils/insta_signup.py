@@ -2,7 +2,6 @@
 
 import random
 import string
-import asyncio
 from utils.temp_mail import create_temp_mail, wait_for_instagram_code
 from playwright_scripts.signup import signup_instagram
 
@@ -12,33 +11,32 @@ def generate_random_username():
 def generate_strong_password():
     return ''.join(random.choices(string.ascii_letters + string.digits + "!@#$%^&*", k=12))
 
-def perform_instagram_signup():
+async def perform_instagram_signup(username=None, password=None, email=None):
     try:
-        return asyncio.run(_signup_async())
-    except Exception as e:
-        return {
-            "status": "fail",
-            "error": f"Top-level async failure: {str(e)}"
-        }
+        # 1. Create a temporary email if none provided
+        if not email:
+            temp = await create_temp_mail()
+            email = temp["email"]
+            token = temp["token"]
+        else:
+            temp = await create_temp_mail(custom_email=email)
+            token = temp["token"]
 
-async def _signup_async():
-    try:
-        # 1. Create a temporary email
-        temp = await create_temp_mail()
-        email = temp["email"]
-        token = temp["token"]
-        username = generate_random_username()
-        password = generate_strong_password()
+        # 2. Generate random username/password if not provided
+        if not username:
+            username = generate_random_username()
+        if not password:
+            password = generate_strong_password()
 
-        print(f"🟢 Temp Email Created: {email}")
+        print(f"🟢 Email: {email}")
         print(f"📛 Username: {username} | 🔑 Password: {password}")
 
-        # 2. Wait for Instagram verification code
+        # 3. Wait for Instagram verification code
         print("⏳ Waiting for Instagram verification code...")
         code = await wait_for_instagram_code(token)
         print(f"✅ Code received: {code}")
 
-        # 3. Complete Instagram signup using Playwright
+        # 4. Complete signup using Playwright
         cookies = await signup_instagram(email, username, password, code)
         print("🎉 Signup successful!")
 
@@ -62,4 +60,4 @@ async def _signup_async():
         return {
             "status": "fail",
             "error": str(e)
-    }
+        }
