@@ -57,9 +57,14 @@ async def perform_instagram_signup(username=None, password=None, email=None):
 
     except Exception as e:
         print(f"❌ Unexpected Error: {str(e)}")
+
+        if "Invalid code" in str(e):
+            return {
+                "status": "fail",
+                "error": "Instagram code expired or invalid"
+            }
+
         return {
             "status": "fail",
             "error": str(e)
         }
-if "Invalid code" in str(e):
-    return {"status": "fail", "error": "Instagram code expired or invalid"}
